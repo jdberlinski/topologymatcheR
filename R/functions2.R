@@ -505,6 +505,107 @@ arraycorr_gen <- function(corrloc,freqs){
   return(list(corrs= corrs,matches = matches,kpair = kpair))
 }
 
+#' Generate array of Fisher-Z transformed correlations from data frame of
+#' correlations
+#'
+#' This function reads the raw correlations csv files and returns an array with
+#' p x q x n , where p is the frequencies, q is the images, and n is the sample
+#' size
+#'
+#' This function is a copy of arraycor_gen, but takes in a data frame rather
+#' than a csv path.
+#'
+#' A caveat is that you need to read in the file with read.csv(), since this 
+#' depends on the column names being of the form X5.10, etc
+#'
+#' @param correlation_df data frame containing correlation scores, generated
+#' from create.df
+#' @param frequencies frequencies that are desired to have in the array
+#' @return a list with 1) 3-way array of correlations with frequencies in rows,
+#' images in columns, and repetitions in the third dimension 2) the matching of
+#' the correlations and 3) the knife pair for the correlation
+#' @export
+#' @author Josh Berlinski
+#' @author Carlos Llosa
+#' @author Geoffrey Z. Thompson
+reshape_correlation <- function(correlation_df, frequencies) {
+  frequencies <- cbind(frequencies[1:(length(frequencies) - 1)],
+                       frequencies[2:length(frequencies)])
+  frequencies <- paste0("X", apply(frequencies, 1, paste, collapse = "."))
+  n_images <- max(correlation_df$img)
+  frequency_columns <- colnames(correlation_df) %in% frequencies
+  correlations <- as.matrix(correlation_df[, frequency_columns])
+  dim(correlations) <- c(n_images,
+                         nrow(correlations) / n_images, 
+                         ncol(correlations))
+  correlations <- atanh(aperm(correlations, c(3, 1, 2)))
+  matches <- matrix(correlation_df$match, n_images)[1, ]
+  kpair <- matrix(correlation_df$knife, n_images)[1, ]
+  return(list(corrs = correlations, matches = matches, kpair = kpair))
+}
+
+#' classify a set of correlations based on a training and a testing path
+#'
+#' this function will take the path of the training and testing sets, and
+#' classify
+#'
+#' this is a copy of classif_gen(), but rewritten to take in data frames, 
+#' and excludes any saving, plotting, etc
+#'
+#' @param train data frame to use as testing set
+#' @param test data frame to use as training set
+#' @param freqs frequencies to be used in the training/testing
+#' @param df degrees of freedom in the matrix-t distribution that will be used
+#' @param verb T or F indicating whether one wants to see progress
+#'
+#' @return a list with 1) posterior probabilities of match 2) parameters used in
+#' the training and 3) ML fits
+#' @export
+#' @author Josh Berlinski
+#' @author Carlos Llosa-Vite
+#' @author Geoffrey Z. Thompson
+#' @import MixMatrix
+#' @import ggplot2
+classify <- function(train, test, freqs = c(5, 10, 20), df = 5) {
+
+  corr_train <- reshape_correlation(train, freqs)
+  corr_test <- reshape_correlation(test, freqs)
+
+  # fit models to the matches and non-matches
+  fit_match <- MLmatrixt_ar1(corr_train$corrs[,, corr_train$matches == "match"], df = df) # nolint
+  fit_nonmatch <- MLmatrixt_ar1(corr_test$corrs[,, corr_test$matches == "match"], df = df) # nolint
+
+  log_likelihood_match <- dmatrixt(
+    corr_test$corrs,
+    df = df,
+    mean = fit_match$mean,
+    U = fit_match$U,
+    V = fit_match$V,
+    log = TRUE
+  )
+  log_likelihood_nonmatch <- dmatrixt(
+    corr_test$corrs,
+    df = df,
+    mean = fit_nonmatch$mean,
+    U = fit_nonmatch$U,
+    V = fit_nonmatch$V,
+    log = TRUE
+  )
+
+  logodds <- log_likelihood_match - log_likelihood_nonmatch
+
+  results <- data.frame(
+    logitprobs = logodds,
+    match = corr_test$matches,
+    kpair = corr_test$kpair,
+    probs = exp(logodds) / (1 + exp(logodds))
+  )
+  return(list(
+    probs = results,
+    params = c(freqs = paste(freqs, collapse = "-"), df = df),
+    fits = list(match = fit_match, nonmatch = fit_nonmatch)
+  ))
+}
 
 
 #' classify a set of correlations based on a training and a testing path
