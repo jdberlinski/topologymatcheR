@@ -53,7 +53,7 @@ create.df <- function(data,
                       freqs,
                       freq_mult = 1.775,
                       map_func = freq.map.radial,
-                      verb = verb)  {
+                      verb = TRUE)  {
   ## cleaned by cll 23/09/21, now I ignore all the "corclass" and "adjust"
   # original by gzt
   imgs <- 1:unname(dim(data[[1]])[4])
@@ -515,7 +515,7 @@ arraycorr_gen <- function(corrloc,freqs){
 #' This function is a copy of arraycor_gen, but takes in a data frame rather
 #' than a csv path.
 #'
-#' A caveat is that you need to read in the file with read.csv(), since this 
+#' A caveat is that you need to read in the file with read.csv(), since this
 #' depends on the column names being of the form X5.10, etc
 #'
 #' @param correlation_df data frame containing correlation scores, generated
@@ -536,7 +536,7 @@ reshape_correlation <- function(correlation_df, frequencies) {
   frequency_columns <- colnames(correlation_df) %in% frequencies
   correlations <- as.matrix(correlation_df[, frequency_columns])
   dim(correlations) <- c(n_images,
-                         nrow(correlations) / n_images, 
+                         nrow(correlations) / n_images,
                          ncol(correlations))
   correlations <- atanh(aperm(correlations, c(3, 1, 2)))
   matches <- matrix(correlation_df$match, n_images)[1, ]
@@ -549,7 +549,7 @@ reshape_correlation <- function(correlation_df, frequencies) {
 #' this function will take the path of the training and testing sets, and
 #' classify
 #'
-#' this is a copy of classif_gen(), but rewritten to take in data frames, 
+#' this is a copy of classif_gen(), but rewritten to take in data frames,
 #' and excludes any saving, plotting, etc
 #'
 #' @param train data frame to use as testing set
@@ -566,14 +566,14 @@ reshape_correlation <- function(correlation_df, frequencies) {
 #' @author Geoffrey Z. Thompson
 #' @import MixMatrix
 #' @import ggplot2
-classify <- function(train, test, freqs = c(5, 10, 20), df = 5) {
+classify <- function(train, test, freqs = c(5, 10, 20), df = 5, samecol = TRUE) {
 
   corr_train <- reshape_correlation(train, freqs)
   corr_test <- reshape_correlation(test, freqs)
 
   # fit models to the matches and non-matches
-  fit_match <- MLmatrixt_ar1(corr_train$corrs[,, corr_train$matches == "match"], df = df) # nolint
-  fit_nonmatch <- MLmatrixt_ar1(corr_test$corrs[,, corr_test$matches == "nonmatch"], df = df) # nolint
+  fit_match <- MLmatrixt_ar1(corr_train$corrs[,, corr_train$matches == "match"], df = df, samecol = samecol) # nolint
+  fit_nonmatch <- MLmatrixt_ar1(corr_test$corrs[,, corr_test$matches == "nonmatch"], df = df, samecol = samecol) # nolint
 
   log_likelihood_match <- dmatrixt(
     corr_test$corrs,

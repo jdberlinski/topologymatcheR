@@ -4,7 +4,14 @@
 \alias{MLmatrixt_ar1}
 \title{Maximum Likelihood Estimation of the Matrix-t Distribution}
 \usage{
-MLmatrixt_ar1(Yall, maxit = 10000, df = 5, err = 1e-05, init = NULL)
+MLmatrixt_ar1(
+  Yall,
+  maxit = 10000,
+  df = 5,
+  err = 1e-05,
+  init = NULL,
+  samecol = TRUE
+)
 }
 \arguments{
 \item{Yall}{p x q x n array that contain the n indepedent p x q matrices}

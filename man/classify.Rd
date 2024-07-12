@@ -4,7 +4,7 @@
 \alias{classify}
 \title{classify a set of correlations based on a training and a testing path}
 \usage{
-classify(train, test, freqs = c(5, 10, 20), df = 5)
+classify(train, test, freqs = c(5, 10, 20), df = 5, samecol = TRUE)
 }
 \arguments{
 \item{train}{data frame to use as testing set}
@@ -26,7 +26,7 @@ this function will take the path of the training and testing sets, and
 classify
 }
 \details{
-this is a copy of classif_gen(), but rewritten to take in data frames, 
+this is a copy of classif_gen(), but rewritten to take in data frames,
 and excludes any saving, plotting, etc
 }
 \author{

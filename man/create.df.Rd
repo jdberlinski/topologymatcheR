@@ -10,7 +10,7 @@ create.df(
   freqs,
   freq_mult = 1.775,
   map_func = freq.map.radial,
-  verb = verb
+  verb = TRUE
 )
 }
 \arguments{

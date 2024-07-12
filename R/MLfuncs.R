@@ -65,7 +65,7 @@ Styp  <- function(x,inv = F){
 #' @author Carlos Llosa-Vite
 #' @references \url{https://doi.org/10.1080/10618600.2019.1696208}
 #' @import MixMatrix
-MLmatrixt_ar1 <- function(Yall,maxit = 1e4,df = 5,err = 1e-5,init = NULL){
+MLmatrixt_ar1 <- function(Yall,maxit = 1e4,df = 5,err = 1e-5,init = NULL, samecol = TRUE){
   #assigning sizes
   di <- dim(Yall)
   p <- di[1]; q <- di[2]; n <- di[3]
@@ -91,7 +91,13 @@ MLmatrixt_ar1 <- function(Yall,maxit = 1e4,df = 5,err = 1e-5,init = NULL){
   #estimate
   for(k in 1:maxit){
     #center the data (needed iteratively whenever the mean has a special structure)
-    cent <- Yall - mv
+    if (samecol || k == 1) {
+      cent <- Yall - mv
+    } else {
+      cent <- Yall
+      for (i in 1:n)
+        cent[,,i] <- cent[,,i] - mv
+    }
     #E-step:  This finds the E(S_i|X_i) for all i = 1,..,n
     E1 <- lapply(1:n,function(i)chol2inv(chol(cent[,,i] %*% Vtyp$inv %*% t(cent[,,i]) + Utyp$orig)))
     E1 <- (df+p+q-1)*aperm(simplify2array(E1),c(3,1,2))
@@ -103,8 +109,14 @@ MLmatrixt_ar1 <- function(Yall,maxit = 1e4,df = 5,err = 1e-5,init = NULL){
     rho_optim <- optimize(Vgen,rang,S=S)
     Vtyp <- Styp(covgen(rho_optim$minimum ))
     #M-step for m : This is a px1 vector. Recall the pxq matrix has q identical columns m
-    mv <- Reduce("+",lapply(1:n,function(i)E1[i,,] %*% Yall[,,i]))
-    mv <- apply(Utyp$orig %*% mv %*% Vtyp$inv,1,sum)/(Vtyp$sinv*n*(p+df-1))
+    if (samecol) {
+      mv <- Reduce("+",lapply(1:n,function(i)E1[i,,] %*% Yall[,,i]))
+      mv <- apply(Utyp$orig %*% mv %*% Vtyp$inv,1,sum)/(Vtyp$sinv*n*(p+df-1))
+    } else {
+      mv <- Reduce("+",lapply(1:n,function(i)E1[i,,] %*% Yall[,,i]))
+      S_SX <- Reduce("+", lapply(1:n, function(i) E1[i, , ]))
+      mv <- solve(S_SX) %*% mv
+    }
     #calculate convergence criteria, which is the sum of relative (to size) norms
     conv <- Utyp$relnorm + Vtyp$relnorm + sqrt(mean(mv^2))
     allconv <- c(allconv,conv)
@@ -115,9 +127,12 @@ MLmatrixt_ar1 <- function(Yall,maxit = 1e4,df = 5,err = 1e-5,init = NULL){
       break
     }
   }
+
+  if (samecol) mv <- replicate(q, mv)
+
   allconv <- allconv[-1] #the first term was 0, so remove it
-  llik <- sum(dmatrixt(x=Yall,df = df,mean = replicate(q,mv),U = Utyp$orig,V = Vtyp$orig,log = T))
-  return(list(mean = replicate(q,mv),
+  llik <- sum(dmatrixt(x=Yall,df = df,mean = mv,U = Utyp$orig,V = Vtyp$orig,log = T))
+  return(list(mean = mv,
               U = Utyp$orig,
               V = Vtyp$orig,
               df = df,

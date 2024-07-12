@@ -27,7 +27,7 @@ size
 This function is a copy of arraycor_gen, but takes in a data frame rather
 than a csv path.
 
-A caveat is that you need to read in the file with read.csv(), since this 
+A caveat is that you need to read in the file with read.csv(), since this
 depends on the column names being of the form X5.10, etc
 }
 \author{
