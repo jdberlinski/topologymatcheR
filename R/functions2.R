@@ -573,7 +573,7 @@ classify <- function(train, test, freqs = c(5, 10, 20), df = 5, samecol = TRUE) 
 
   # fit models to the matches and non-matches
   fit_match <- MLmatrixt_ar1(corr_train$corrs[,, corr_train$matches == "match"], df = df, samecol = samecol) # nolint
-  fit_nonmatch <- MLmatrixt_ar1(corr_test$corrs[,, corr_test$matches == "nonmatch"], df = df, samecol = samecol) # nolint
+  fit_nonmatch <- MLmatrixt_ar1(corr_train$corrs[,, corr_train$matches == "nonmatch"], df = df, samecol = samecol) # nolint
 
   log_likelihood_match <- dmatrixt(
     corr_test$corrs,
